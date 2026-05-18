@@ -47,6 +47,42 @@ This pipeline seeks to solve for that, and while initial setup to capture the ra
 
 The following steps are designed to be run in sequence.
 
+### Addon Bulk Export
+
+This repository can now be packaged as an Arma addon with HEMTT. Use this addon on the Arma 3 development branch / diagnostics executable only. The stable branch should continue to use `grad_meh` for Intercept/WRP exports.
+
+Build the addon from this repository root:
+
+```cmd
+hemtt release
+```
+
+The release contains `@ocap_renderterrain` and copies `ocap_exporter_x64.dll` into the mod root. Load the mod together with CBA and the terrain mods you want to export.
+
+Start a bulk export from the debug console:
+
+```sqf
+[["Stratis", "Altis"]] call ocap_renderterrain_fnc_export;
+```
+
+The wrapper launches each selected world as a scripted mission, runs the existing OCAP exporter for that world, then moves to the next world. Output is written under the Arma 3 installation directory:
+
+```text
+ocap_exporter/{worldName}/
+  {worldName}.asc
+  {worldName}.svg
+  map.json
+  ocap_exporter.log
+```
+
+After the game-side export finishes, copy or move the world folders into this repository's `input/` directory and run:
+
+```cmd
+tools\process-output.cmd
+```
+
+That script always uses Docker to build and run the render pipeline, so local Inkscape/ImageMagick/GDAL installs do not affect output.
+
 > **One Time Step**:
 > _Copy `./ocap-exporter/ocap_exporter_x64.dll` to the root of your Arma 3 installation. This extension must be callable by Arma to facilitate data export to file._
 

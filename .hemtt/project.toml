@@ -1,0 +1,53 @@
+name = "ocap-renderterrain"
+prefix = "ocap_renderterrain"
+mainprefix = "x"
+author = "OCAP"
+folder_optionals = false
+
+[version]
+major = 1
+minor = 0
+patch = 0
+build = 0
+git_hash = 0
+
+[files]
+include = [
+    "mod.cpp",
+    "README.md",
+    "license.md",
+    "modules",
+    "ocap-renderterrain"
+]
+exclude = [
+    ".gitignore",
+    ".editorconfig",
+    "*.md",
+    "*.json"
+]
+
+key_name = "{{prefix}}-{{version}}"
+authority = "{{version}}"
+
+releasebuild = [
+  "!copyExtension",
+  "!copyArchangelModules",
+  "!copyDockerPipeline"
+]
+
+[scripts.copyExtension]
+steps_windows = [
+    'xcopy ocap-exporter\ocap_exporter_x64.dll releases\\{{version}}\@{{prefix}}\ /Y /F'
+]
+
+[scripts.copyArchangelModules]
+steps_windows = [
+    'xcopy modules releases\\{{version}}\@{{prefix}}\modules\ /E /I /Y'
+]
+
+[scripts.copyDockerPipeline]
+steps_windows = [
+    'xcopy ocap-renderterrain releases\\{{version}}\@{{prefix}}\ocap-renderterrain\ /E /I /Y'
+]
+
+show_output = true

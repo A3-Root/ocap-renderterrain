@@ -20,6 +20,10 @@ for f in os.listdir("."):
 world_list = [
     f for f in os.listdir("./input") if os.path.isdir(os.path.join("./input", f))
 ]
+world_filter = os.environ.get("OCAP_RENDER_WORLDS", "").strip()
+if world_filter:
+    wanted_worlds = {world.strip().lower() for world in world_filter.split(",") if world.strip()}
+    world_list = [world for world in world_list if world.lower() in wanted_worlds]
 
 print("")
 print("Found the following worlds:")
