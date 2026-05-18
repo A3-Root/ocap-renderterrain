@@ -13,8 +13,8 @@ def _result(status, **values):
     return data
 
 
-def _repo_root():
-    return Path(__file__).resolve().parents[2]
+def _mod_root():
+    return Path(__file__).resolve().parents[1]
 
 
 def _arma_root():
@@ -28,8 +28,8 @@ def _key(world_name):
 def _run(world_name):
     key = _key(world_name)
     arma_root = _arma_root()
-    repo_root = _repo_root()
-    docker_context = repo_root / "ocap-renderterrain"
+    mod_root = _mod_root()
+    docker_context = mod_root / "ocap_renderterrain"
     input_dir = arma_root / "ocap_exporter"
     output_dir = arma_root / "ocap_renderterrain_output"
     temp_dir = arma_root / "ocap_renderterrain_temp"
@@ -45,7 +45,7 @@ def _run(world_name):
             _jobs[key] = {"status": "building", "error": "", "output": output_dir}
         subprocess.run(
             ["docker", "build", "-t", "ocap-renderterrain:latest", str(docker_context)],
-            cwd=str(repo_root),
+            cwd=str(mod_root),
             check=True,
         )
 
@@ -69,7 +69,7 @@ def _run(world_name):
                 "--memory=36g",
                 "ocap-renderterrain:latest",
             ],
-            cwd=str(repo_root),
+            cwd=str(mod_root),
             check=True,
         )
 

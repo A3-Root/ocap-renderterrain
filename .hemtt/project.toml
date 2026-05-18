@@ -15,9 +15,7 @@ git_hash = 0
 include = [
     "mod.cpp",
     "README.md",
-    "license.md",
-    "modules",
-    "ocap-renderterrain"
+    "license.md"
 ]
 exclude = [
     ".gitignore",
@@ -30,24 +28,12 @@ key_name = "{{prefix}}-{{version}}"
 authority = "{{version}}"
 
 releasebuild = [
-  "!copyExtension",
-  "!copyArchangelModules",
-  "!copyDockerPipeline"
+  "!copyExtension"
 ]
 
 [scripts.copyExtension]
 steps_windows = [
     'xcopy ocap-exporter\ocap_exporter_x64.dll releases\\{{version}}\@{{prefix}}\ /Y /F'
-]
-
-[scripts.copyArchangelModules]
-steps_windows = [
-    'xcopy modules releases\\{{version}}\@{{prefix}}\modules\ /E /I /Y'
-]
-
-[scripts.copyDockerPipeline]
-steps_windows = [
-    'xcopy ocap-renderterrain releases\\{{version}}\@{{prefix}}\ocap-renderterrain\ /E /I /Y'
 ]
 
 show_output = true
