@@ -57,7 +57,7 @@ Build the addon from this repository root:
 hemtt release
 ```
 
-The release contains `@ocap_renderterrain` and copies `ocap_exporter_x64.dll` into the mod root. Load the mod together with CBA and the terrain mods you want to export.
+The release contains `@ocap_renderterrain` and copies `ocap_exporter_x64.dll` plus `ocap_renderterrain_process.bat` into the mod root. Load the mod together with CBA and the terrain mods you want to export.
 
 Select maps from the addon UI, or start a bulk export from the debug console:
 
@@ -65,7 +65,7 @@ Select maps from the addon UI, or start a bulk export from the debug console:
 [["Stratis", "Altis"]] call ocap_renderterrain_fnc_export;
 ```
 
-The wrapper launches each selected world as a scripted mission, runs the existing OCAP exporter, starts Archangel/Docker processing for that world, then moves to the next world. Source output is written under the Arma 3 installation directory:
+The wrapper launches each selected world as a scripted mission and runs the existing OCAP exporter. If `Run Docker render in-game` is checked in the export options, it starts Archangel/Docker processing for that world before moving to the next world. Source output is written under the Arma 3 installation directory:
 
 ```text
 ocap_exporter/{worldName}/
@@ -81,13 +81,32 @@ Rendered output is written under:
 ocap_renderterrain_output/{worldName}/
 ```
 
-If you want to process exported source data manually instead, copy or move the world folders into this repository's `input/` directory and run:
+If you skip in-game Docker processing from the addon release, run the packaged batch file after export:
+
+```cmd
+@ocap_renderterrain\ocap_renderterrain_process.bat
+```
+
+You can pass a comma-separated world filter as the first argument:
+
+```cmd
+@ocap_renderterrain\ocap_renderterrain_process.bat Stratis,Altis
+```
+
+For repository-local processing instead, copy or move the world folders into this repository's `input/` directory and run:
 
 ```cmd
 tools\process-output.cmd
 ```
 
 That script always uses Docker to build and run the render pipeline, so local Inkscape/ImageMagick/GDAL installs do not affect output.
+
+Docker is launched with a `48g` memory limit by default. To use a different limit, set `OCAP_RENDER_DOCKER_MEMORY` before starting the in-game export or batch script:
+
+```cmd
+set OCAP_RENDER_DOCKER_MEMORY=56g
+@ocap_renderterrain\ocap_renderterrain_process.bat Stratis,Altis
+```
 
 > **One Time Step**:
 > _Copy `./ocap-exporter/ocap_exporter_x64.dll` to the root of your Arma 3 installation. This extension must be callable by Arma to facilitate data export to file._
@@ -178,10 +197,10 @@ docker build -t indifox926/ocap-rendermap:latest .
 
 
 <!-- WITHOUT TEMP MOUNTED, FOR SPEED -->
-docker run -it --rm --name ocap-rendermap --mount type=bind,src="$(pwd)"/input,target=/app/input --mount type=bind,src="$(pwd)"/output,target=/app/output --memory=8g indifox926/ocap-rendermap:latest
+docker run -it --rm --name ocap-rendermap --mount type=bind,src="$(pwd)"/input,target=/app/input --mount type=bind,src="$(pwd)"/output,target=/app/output --memory=48g indifox926/ocap-rendermap:latest
 
 <!-- WITH TEMP BIND MOUNTED FOR DEBUG -->
-docker run -it --rm --name ocap-rendermap --mount type=bind,src="$(pwd)"/input,target=/app/input --mount type=bind,src="$(pwd)"/output,target=/app/output --mount type=bind,src="$(pwd)"/temp,target=/app/temp --memory=8g indifox926/ocap-rendermap:latest
+docker run -it --rm --name ocap-rendermap --mount type=bind,src="$(pwd)"/input,target=/app/input --mount type=bind,src="$(pwd)"/output,target=/app/output --mount type=bind,src="$(pwd)"/temp,target=/app/temp --memory=48g indifox926/ocap-rendermap:latest
 ```
 
 ### Output Data Structure

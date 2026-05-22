@@ -3,12 +3,23 @@
  *
  * Arguments:
  * 0: World class names to export <ARRAY>
+ * 8: Run Docker processing in-game <BOOL> (optional, default true)
  *
  * Example:
  * [["Stratis", "Altis"]] call ocap_renderterrain_fnc_export;
  */
 
-params [["_maps", [], [[]]]];
+params [
+	["_maps", [], [[]]],
+	["_exportSat", true, [true]],
+	["_exportTopo", true, [true]],
+	["_exportBakedTopo", true, [true]],
+	["_exportHouses", true, [true]],
+	["_exportPreviewImg", true, [true]],
+	["_exportMeta", true, [true]],
+	["_exportDem", true, [true]],
+	["_processDockerInGame", true, [true]]
+];
 
 if (_maps isEqualTo []) then {
 	_maps = [worldName];
@@ -18,6 +29,7 @@ uiNamespace setVariable ["ocap_renderterrain_maps", +_maps];
 uiNamespace setVariable ["ocap_renderterrain_index", 0];
 uiNamespace setVariable ["ocap_renderterrain_progress", []];
 uiNamespace setVariable ["ocap_renderterrain_errors", []];
+uiNamespace setVariable ["ocap_renderterrain_processDockerInGame", _processDockerInGame];
 
 disableSerialization;
 
@@ -69,27 +81,34 @@ uiNamespace setVariable ["ocap_renderterrain_fnc_startMission", {
 				waitUntil { sleep 2; missionNamespace getVariable ["ocap_exporter_done", false] };
 				[_currentWorld, "export_source", "done"] call (uiNamespace getVariable "ocap_renderterrain_fnc_updateProgress");
 
-				[_currentWorld, "process_docker", "running"] call (uiNamespace getVariable "ocap_renderterrain_fnc_updateProgress");
-				private _startResult = "archangel" callExtension ["ocap_renderterrain.process_world", [_currentWorld]];
-				private _processStatus = [_startResult] call _extensionStatus;
-				if (_processStatus isEqualTo "error") then {
-					[_currentWorld, "process_docker", "canceled"] call (uiNamespace getVariable "ocap_renderterrain_fnc_updateProgress");
-					[_currentWorld, str _startResult] call _reportError;
-				} else {
-					private _lastStatusResult = _startResult;
-					waitUntil {
-						sleep 5;
-						private _statusResult = "archangel" callExtension ["ocap_renderterrain.get_status", [_currentWorld]];
-						_lastStatusResult = _statusResult;
-						_processStatus = [_statusResult] call _extensionStatus;
-						_processStatus in ["done", "error"]
-					};
-					if (_processStatus isEqualTo "done") then {
-						[_currentWorld, "process_docker", "done"] call (uiNamespace getVariable "ocap_renderterrain_fnc_updateProgress");
-					} else {
+				private _processDockerInGame = uiNamespace getVariable ["ocap_renderterrain_processDockerInGame", true];
+				if (_processDockerInGame) then {
+					[_currentWorld, "process_docker", "running"] call (uiNamespace getVariable "ocap_renderterrain_fnc_updateProgress");
+					private _startResult = "archangel" callExtension ["ocap_renderterrain.process_world", [_currentWorld]];
+					private _processStatus = [_startResult] call _extensionStatus;
+					if (_processStatus isEqualTo "error") then {
 						[_currentWorld, "process_docker", "canceled"] call (uiNamespace getVariable "ocap_renderterrain_fnc_updateProgress");
-						[_currentWorld, str _lastStatusResult] call _reportError;
+						[_currentWorld, str _startResult] call _reportError;
+					} else {
+						private _lastStatusResult = _startResult;
+						waitUntil {
+							sleep 5;
+							private _statusResult = "archangel" callExtension ["ocap_renderterrain.get_status", [_currentWorld]];
+							_lastStatusResult = _statusResult;
+							_processStatus = [_statusResult] call _extensionStatus;
+							_processStatus in ["done", "error"]
+						};
+						if (_processStatus isEqualTo "done") then {
+							[_currentWorld, "process_docker", "done"] call (uiNamespace getVariable "ocap_renderterrain_fnc_updateProgress");
+						} else {
+							[_currentWorld, "process_docker", "canceled"] call (uiNamespace getVariable "ocap_renderterrain_fnc_updateProgress");
+							[_currentWorld, str _lastStatusResult] call _reportError;
+						};
 					};
+				} else {
+					[_currentWorld, "process_docker", "canceled"] call (uiNamespace getVariable "ocap_renderterrain_fnc_updateProgress");
+					diag_log format ["[OCAP RenderTerrain]: Skipping Docker processing for %1", _currentWorld];
+					systemChat format ["[OCAP RenderTerrain]: Skipping Docker processing for %1", _currentWorld];
 				};
 
 				private _nextIndex = _index + 1;

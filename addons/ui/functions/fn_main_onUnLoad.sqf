@@ -18,7 +18,7 @@ if (_exitCode isEqualTo 1) then {
 	if (count _maps isEqualTo 0) then {
 		(displayParent _display) spawn { _this createDisplay "ocap_renderterrain_main"; };
 	} else {
-		[_maps] call (uiNamespace getVariable "ocap_renderterrain_fnc_export");
+		(displayParent _display) spawn { _this createDisplay "ocap_renderterrain_config"; };
 	};
 } else {
 	// user pressed cancel

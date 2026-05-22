@@ -1,3 +1,4 @@
+import os
 import subprocess
 import threading
 from pathlib import Path
@@ -56,6 +57,7 @@ def _run(world_name):
     output_dir = arma_root / "ocap_renderterrain_output"
     temp_dir = arma_root / "ocap_renderterrain_temp"
     log_file = _log_file(arma_root, key)
+    docker_memory = os.environ.get("OCAP_RENDER_DOCKER_MEMORY", "48g")
 
     try:
         log_file.write_text("", encoding="utf-8")
@@ -107,7 +109,7 @@ def _run(world_name):
                 f"OCAP_RENDER_WORLDS={key}",
                 "--env",
                 "OCAP_RENDER_MAX_SIZE=32768",
-                "--memory=36g",
+                f"--memory={docker_memory}",
                 "ocap-renderterrain:latest",
             ],
             cwd=mod_root,

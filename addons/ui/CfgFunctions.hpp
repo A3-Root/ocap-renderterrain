@@ -7,6 +7,8 @@ class CfgFunctions {
 			class loading_redraw {};
 			class loading_onUnLoad {};
 			class loadingItem_create {};
+			class config_onLoad {};
+			class config_onUnLoad {};
 			class main_onLoad {};
 			class main_onUnLoad {};
 			class mapItem_onClick {};

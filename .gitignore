@@ -4,3 +4,4 @@ releases/
 .hemttprivatekey
 .biprivatekey
 reference_files/**/*
+**__pycache__**/**/*

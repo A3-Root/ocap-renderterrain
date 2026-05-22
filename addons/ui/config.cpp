@@ -25,6 +25,7 @@ class ctrlStaticFooter;
 class ctrlButtonOK;
 class ctrlButtonClose;
 class ctrlButtonCancel;
+class ctrlCheckbox;
 class Attributes;
 
 #include "idcmacros.hpp"
@@ -35,6 +36,7 @@ class Attributes;
 
 // dialogs
 #include "dialogs\main.hpp"
+#include "dialogs\config.hpp"
 #include "dialogs\loading.hpp"
 #include "dialogs\done.hpp"
 
