@@ -3,3 +3,4 @@
 releases/
 .hemttprivatekey
 .biprivatekey
+reference_files/**/*

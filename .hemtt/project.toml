@@ -5,10 +5,7 @@ author = "OCAP"
 folder_optionals = false
 
 [version]
-major = 1
-minor = 0
-patch = 0
-build = 0
+path = "addons/exporter/script_version.hpp"
 git_hash = 0
 
 [files]

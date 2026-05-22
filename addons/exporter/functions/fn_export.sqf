@@ -52,11 +52,11 @@ uiNamespace setVariable ["ocap_renderterrain_fnc_startMission", {
 					params [["_callResult", ""]];
 					private _text = str _callResult;
 					private _status = "unknown";
+					if ((_text find """error""") >= 0) then { _status = "error"; };
 					if ((_text find """queued""") >= 0) then { _status = "queued"; };
 					if ((_text find """building""") >= 0) then { _status = "building"; };
 					if ((_text find """running""") >= 0) then { _status = "running"; };
 					if ((_text find """done""") >= 0) then { _status = "done"; };
-					if ((_text find """error""") >= 0) then { _status = "error"; };
 					_status
 				};
 

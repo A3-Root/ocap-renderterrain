@@ -59,13 +59,13 @@ hemtt release
 
 The release contains `@ocap_renderterrain` and copies `ocap_exporter_x64.dll` into the mod root. Load the mod together with CBA and the terrain mods you want to export.
 
-Start a bulk export from the debug console:
+Select maps from the addon UI, or start a bulk export from the debug console:
 
 ```sqf
 [["Stratis", "Altis"]] call ocap_renderterrain_fnc_export;
 ```
 
-The wrapper launches each selected world as a scripted mission, runs the existing OCAP exporter for that world, then moves to the next world. Output is written under the Arma 3 installation directory:
+The wrapper launches each selected world as a scripted mission, runs the existing OCAP exporter, starts Archangel/Docker processing for that world, then moves to the next world. Source output is written under the Arma 3 installation directory:
 
 ```text
 ocap_exporter/{worldName}/
@@ -75,7 +75,13 @@ ocap_exporter/{worldName}/
   ocap_exporter.log
 ```
 
-After the game-side export finishes, copy or move the world folders into this repository's `input/` directory and run:
+Rendered output is written under:
+
+```text
+ocap_renderterrain_output/{worldName}/
+```
+
+If you want to process exported source data manually instead, copy or move the world folders into this repository's `input/` directory and run:
 
 ```cmd
 tools\process-output.cmd
