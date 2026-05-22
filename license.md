@@ -1,4 +1,4 @@
-Copyright 2023 by IndigoFox <indigo@indigofox.dev>
+Copyright 2026 by A3-Root <131482033+A3-Root@users.noreply.github.com>
 
 # Arma Public License Share Alike (APL-SA)
 

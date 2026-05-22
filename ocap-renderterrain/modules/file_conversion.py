@@ -7,6 +7,12 @@ from prettytable import PrettyTable
 import xml.etree.ElementTree as ET
 
 
+def run_command(command):
+    """Run a shell command and fail loudly with the command that failed."""
+    print(f"Running: {command}", flush=True)
+    subprocess.run(command, shell=True, check=True)
+
+
 def get_svg_items(root, category_id, item_type):
     """Get SVG items of a specific type from a specific category"""
     for category in root.findall("./{http://www.w3.org/2000/svg}g"):
@@ -338,10 +344,8 @@ def convert_svg_to_png(in_file, out_file, export_size):
     print("Converting SVG to PNG...")
 
     temp_file = out_file.replace(".png", "_temp.png")
-    subprocess.call(
+    run_command(
         f"inkscape -o {out_file} --export-height={export_size} --export-width={export_size} {in_file}",
-        # f"libreoffice --headless --convert-to png --outdir {out_dir} {in_file}",
-        shell=True,
     )
     print("Converted SVG to PNG")
 
@@ -350,28 +354,28 @@ def convert_png_to_24bit(in_file, out_file):
     """Convert PNG to 24-bit"""
     print("Converting PNG to 24-bit...")
 
-    ret_code = subprocess.call(
+    run_command(
         f"magick {in_file} -alpha off {out_file}",
-        shell=True,
     )
-    if ret_code != 0:
-        print("Error converting PNG to 24-bit, exiting...")
-        sys.exit(1)
     print("Converted PNG to 24-bit, saved as", out_file)
+
+
+def resize_raster(in_file, out_file, export_size):
+    """Resize a raster with GDAL instead of ImageMagick for large DEM-derived images."""
+    temp_file = out_file.replace(".png", "_resized.png")
+    run_command(
+        f"gdal_translate -of PNG -outsize {export_size} {export_size} -r bilinear {in_file} {temp_file}",
+    )
+    os.replace(temp_file, out_file)
 
 
 def generate_heightmap(in_file, out_file, export_size):
     """Convert DEM (XYZ or ASC) to GeoTIFF"""
 
-    subprocess.call(
+    run_command(
         f"gdaldem hillshade -alg Horn -alt 45 -multidirectional -of PNG {in_file} {out_file}",
-        shell=True,
     )
-    # resize to export_size
-    subprocess.call(
-        f"magick {out_file} -resize {export_size}x{export_size} {out_file}",
-        shell=True,
-    )
+    resize_raster(out_file, out_file, export_size)
 
 
 def generate_colorrelief(in_file, out_file, export_size):
@@ -379,47 +383,38 @@ def generate_colorrelief(in_file, out_file, export_size):
 
     # see here for other color relief options
     # http://soliton.vm.bytemark.co.uk/pub/cpt-city/index.html
-    subprocess.call(
+    run_command(
         f"gdaldem color-relief -of PNG {in_file} ./modules/nzblue.cpt {out_file}",
-        shell=True,
     )
-    # resize to export_size
-    subprocess.call(
-        f"magick {out_file} -resize {export_size}x{export_size} {out_file}",
-        shell=True,
-    )
+    resize_raster(out_file, out_file, export_size)
 
 
 def set_half_opacity(in_file, out_file):
     """Set image to half opacity"""
-    subprocess.call(
-        f"magick {in_file} -alpha set -channel a -evaluate set 50% -limit area 0 {out_file}",
-        shell=True,
+    run_command(
+        f"magick -limit area 0 {in_file} -alpha set -channel a -evaluate set 50% {out_file}",
     )
 
 
 def composite_images(in_file, overlay_file, out_file):
     """Composite two PNGs"""
     # overlay filter
-    subprocess.call(
+    run_command(
         f"magick {in_file} {overlay_file} -composite {out_file}",
-        shell=True,
     )
 
 
 def overlay_images(in_file, overlay_file, out_file):
     """Overlay two PNGs"""
     # overlay filter
-    subprocess.call(
+    run_command(
         f"magick {in_file} {overlay_file} -compose overlay -composite {out_file}",
-        shell=True,
     )
 
 
 def multiply_images(in_file, overlay_file, out_file):
     """Multiply two PNGs"""
     # multiply filter
-    subprocess.call(
-        f"magick {in_file} {overlay_file} -limit area 500m -compose multiply -composite {out_file}",
-        shell=True,
+    run_command(
+        f"magick -limit area 2GP {in_file} {overlay_file} -compose multiply -composite {out_file}",
     )

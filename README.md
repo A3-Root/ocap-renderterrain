@@ -209,7 +209,7 @@ The output data will be saved to the `output` directory of this project. The out
     |   ├── {worldName}_topoRelief.tif (georeferenced GeoTiff)
     |   └── map.json (metadata)
 
-This folder can be installed directly to the local /maps folder of an OCAP2 instance. Please also provide this data to [indigo@indigofox.dev](mailto:indigo@indigofox.dev) or on the OCAP2 Discord server so that it can be hosted for others to stream.
+This folder can be installed directly to the local /maps folder of an OCAP2 instance. Please also provide this data to [131482033+A3-Root@users.noreply.github.com](mailto:131482033+A3-Root@users.noreply.github.com) or on the OCAP2 Discord server so that it can be hosted for others to stream.
 
 ## Push
 

@@ -11,6 +11,28 @@ from threading import Thread
 from modules import file_conversion
 from modules import compress
 
+
+def run_command(command):
+    print(f"Running: {command}", flush=True)
+    subprocess.run(command, shell=True, check=True)
+
+
+def zoom_level_for_image_size(image_size):
+    zoom_level = 6
+    if image_size >= 2048:
+        zoom_level = 3
+    if image_size >= 2560:
+        zoom_level = 4
+    if image_size >= 5120:
+        zoom_level = 5
+    if image_size >= 10240:
+        zoom_level = 6
+    if image_size >= 16400:
+        zoom_level = 7
+    if image_size >= 32768:
+        zoom_level = 8
+    return zoom_level
+
 # print a list of files in .
 print("Files in .:")
 for f in os.listdir("."):
@@ -128,11 +150,17 @@ for WORLDNAME_PATH in world_list:
         print(f"No metadata file found ({WORLD_JSON_FILE_PATH}), exiting...")
         sys.exit(1)
 
-    # WORLD_JSON["imageSize"] = 16384
+    render_max_size = int(os.environ.get("OCAP_RENDER_MAX_SIZE", "32768"))
+
     print("WORLD_JSON", json.dumps(WORLD_JSON, indent=4))
     WORLD_JSON["worldSize"] = math.ceil(WORLD_JSON["worldSize"])
-    WORLD_JSON["imageSize"] = min(WORLD_JSON["worldSize"], 32768)
+    WORLD_JSON["imageSize"] = min(WORLD_JSON["worldSize"], render_max_size)
     WORLD_JSON["multiplier"] = WORLD_JSON["imageSize"] / WORLD_JSON["worldSize"]
+    print(
+        f"Render settings: mode=full, maxSize={render_max_size}, "
+        f"imageSize={WORLD_JSON['imageSize']}",
+        flush=True,
+    )
     print("WORLD_JSON", json.dumps(WORLD_JSON, indent=4))
 
     # XYZ_FILE_PATH = os.path.join(INPUT_FOLDER, f"{WORLDNAME}.xyz")
@@ -146,7 +174,7 @@ for WORLDNAME_PATH in world_list:
         sys.exit(1)
 
     # show gdalinfo for ASC_FILE_PATH
-    subprocess.call(f"gdalinfo -mm {ASC_FILE_PATH}", shell=True)
+    run_command(f"gdalinfo -mm {ASC_FILE_PATH}")
 
     SVG_FILE_PATH = os.path.join(INPUT_FOLDER, f"{WORLDNAME}.svg")
     if not os.path.exists(SVG_FILE_PATH):
@@ -211,6 +239,7 @@ for WORLDNAME_PATH in world_list:
     if not os.path.exists(PNG_TOPO_FILE_PATH):
         print(f"Failed to create {PNG_TOPO_FILE_PATH}, skipping world...")
         continue
+
     print(f'=== Generating "dark" PNG... {WORLDNAME} ===')
     file_conversion.convert_svg_to_png(
         SVG_DARK_FILE_PATH, PNG_DARK_FILE_PATH, WORLD_JSON.get("imageSize", 16384)
@@ -310,23 +339,10 @@ for WORLDNAME_PATH in world_list:
     print(f"=== Generating tilesets... {WORLDNAME} ===")
     # render topo to folder root
     print('Generating tileset "topo" to subfolder...')
-    zoom_level = 6
-    if WORLD_JSON.get("imageSize", 16384) >= 2048:
-        zoom_level = 3
-    if WORLD_JSON.get("imageSize", 16384) >= 2560:
-        zoom_level = 4
-    if WORLD_JSON.get("imageSize", 16384) >= 5120:
-        zoom_level = 5
-    if WORLD_JSON.get("imageSize", 16384) >= 10240:
-        zoom_level = 6
-    if WORLD_JSON.get("imageSize", 16384) >= 16400:
-        zoom_level = 7
-    if WORLD_JSON.get("imageSize", 16384) >= 32768:
-        zoom_level = 8
+    zoom_level = zoom_level_for_image_size(WORLD_JSON.get("imageSize", 16384))
 
-    subprocess.call(
+    run_command(
         f"gdal2tiles.py -p raster --xyz -z 0-{zoom_level} -w all -r lanczos -t {WORLDNAME}_topo {PNG_TOPO_FILE_PATH} {OUTPUT_FOLDER}",
-        shell=True,
     )
     # render dark, topo, and colorrelief to subfolders
     for outfile in [
@@ -336,9 +352,8 @@ for WORLDNAME_PATH in world_list:
     ]:
         image_path, folder_name = outfile
         print(f'Generating tileset "{folder_name}" to subfolder...')
-        subprocess.call(
+        run_command(
             f"gdal2tiles.py -p raster --xyz -z 0-{zoom_level} -r lanczos -t {WORLDNAME}_{folder_name} {image_path} {os.path.join(OUTPUT_FOLDER, folder_name)}",
-            shell=True,
         )
 
     # we need to check the max zoom that was rendered. the auto-clamped max zoom will vary based on original image size, which here is paired to the worldSize in m. we'll then update the metadata with the maxZoom.
@@ -376,14 +391,12 @@ for WORLDNAME_PATH in world_list:
     ]
     # convert to geotiff
     print("Converting topoRelief to GeoTiff...")
-    subprocess.call(
+    run_command(
         f"gdal_translate -of GTiff -a_srs EPSG:3857 -a_ullr {terrain_bounds[0][0]} {terrain_bounds[0][1]} {terrain_bounds[2][0]} {terrain_bounds[2][1]} -co COMPRESS=DEFLATE -co TILED=YES {PNG_TOPORELIEF_FILE_PATH} {os.path.join(OUTPUT_FOLDER, f'{WORLDNAME}_topoRelief.tif')}",
-        shell=True,
     )
     print("Converting colorRelief to GeoTiff...")
-    subprocess.call(
+    run_command(
         f"gdal_translate -of GTiff -a_srs EPSG:3857 -a_ullr {terrain_bounds[0][0]} {terrain_bounds[0][1]} {terrain_bounds[2][0]} {terrain_bounds[2][1]} -co COMPRESS=DEFLATE -co TILED=YES {PNG_COLORRELIEF_FILE_PATH} {os.path.join(OUTPUT_FOLDER, f'{WORLDNAME}_colorRelief.tif')}",
-        shell=True,
     )
 
     # # generate a geojson of a 100m grid from 0 to 40km
@@ -475,4 +488,5 @@ for WORLDNAME_PATH in world_list:
 
 
 print("Completed all tasks!")
-input("Press Enter to continue...")
+if sys.stdin.isatty():
+    input("Press Enter to continue...")

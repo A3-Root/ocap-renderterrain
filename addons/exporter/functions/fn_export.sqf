@@ -52,11 +52,11 @@ uiNamespace setVariable ["ocap_renderterrain_fnc_startMission", {
 					params [["_callResult", ""]];
 					private _text = str _callResult;
 					private _status = "unknown";
-					if ((_text find """error""") >= 0) then { _status = "error"; };
 					if ((_text find """queued""") >= 0) then { _status = "queued"; };
 					if ((_text find """building""") >= 0) then { _status = "building"; };
 					if ((_text find """running""") >= 0) then { _status = "running"; };
 					if ((_text find """done""") >= 0) then { _status = "done"; };
+					if ((_text find """error""") >= 0) then { _status = "error"; };
 					_status
 				};
 
@@ -76,9 +76,11 @@ uiNamespace setVariable ["ocap_renderterrain_fnc_startMission", {
 					[_currentWorld, "process_docker", "canceled"] call (uiNamespace getVariable "ocap_renderterrain_fnc_updateProgress");
 					[_currentWorld, str _startResult] call _reportError;
 				} else {
+					private _lastStatusResult = _startResult;
 					waitUntil {
 						sleep 5;
 						private _statusResult = "archangel" callExtension ["ocap_renderterrain.get_status", [_currentWorld]];
+						_lastStatusResult = _statusResult;
 						_processStatus = [_statusResult] call _extensionStatus;
 						_processStatus in ["done", "error"]
 					};
@@ -86,7 +88,7 @@ uiNamespace setVariable ["ocap_renderterrain_fnc_startMission", {
 						[_currentWorld, "process_docker", "done"] call (uiNamespace getVariable "ocap_renderterrain_fnc_updateProgress");
 					} else {
 						[_currentWorld, "process_docker", "canceled"] call (uiNamespace getVariable "ocap_renderterrain_fnc_updateProgress");
-						[_currentWorld, "Docker processing failed. Check archangel.log and Docker output."] call _reportError;
+						[_currentWorld, str _lastStatusResult] call _reportError;
 					};
 				};
 

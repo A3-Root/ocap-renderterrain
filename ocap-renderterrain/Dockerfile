@@ -6,6 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
+ENV MAGICK_TEMPORARY_PATH=/app/temp
 
 
 WORKDIR /app/prereqs
@@ -39,7 +40,9 @@ RUN pip install shapely==1.7.1
 # Install pip requirements
 RUN pip install -r ./requirements.txt
 
-# Remove policy limits on ImageMagick
+# Relax ImageMagick limits for large Arma terrain renders.
+RUN mkdir -p /etc/ImageMagick-6 /etc/ImageMagick-7
+COPY ./im-policy.xml /etc/ImageMagick-6/policy.xml
 COPY ./im-policy.xml /etc/ImageMagick-7/policy.xml
 
 # Copy everything in resources folder to /app
