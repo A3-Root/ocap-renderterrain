@@ -36,7 +36,15 @@ def _log_file(arma_root, key):
 def _run_logged(command, cwd, log_file, check=True):
     with log_file.open("a", encoding="utf-8", errors="replace") as outfile:
         outfile.write(f"$ {' '.join(str(part) for part in command)}\n")
-    return subprocess.run(command, cwd=str(cwd), check=check)
+    result = subprocess.run(command, cwd=str(cwd), check=False)
+    with log_file.open("a", encoding="utf-8", errors="replace") as outfile:
+        outfile.write(f"Exit code: {result.returncode}\n")
+    if check and result.returncode != 0:
+        raise RuntimeError(
+            f"Command failed with exit code {result.returncode}: "
+            f"{' '.join(str(part) for part in command)}"
+        )
+    return result
 
 
 def _run(world_name):
@@ -69,6 +77,12 @@ def _run(world_name):
             cwd=mod_root,
             log_file=log_file,
         )
+        _run_logged(
+            ["docker", "rm", "-f", f"ocap-renderterrain-{key}"],
+            cwd=mod_root,
+            log_file=log_file,
+            check=False,
+        )
 
         with _lock:
             _jobs[key] = {
@@ -81,7 +95,6 @@ def _run(world_name):
             [
                 "docker",
                 "run",
-                "--rm",
                 "--name",
                 f"ocap-renderterrain-{key}",
                 "--mount",
