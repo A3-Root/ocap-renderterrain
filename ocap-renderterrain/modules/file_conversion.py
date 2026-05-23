@@ -7,6 +7,36 @@ from prettytable import PrettyTable
 import xml.etree.ElementTree as ET
 
 
+def _env_float(name, default):
+    try:
+        return float(os.environ.get(name, default))
+    except ValueError:
+        return float(default)
+
+
+TOWN_NAME_FONT_SIZE = _env_float("OCAP_RENDER_TOWN_NAME_FONT_SIZE", "24")
+TOWN_NAME_COLLISION_PADDING = _env_float(
+    "OCAP_RENDER_TOWN_NAME_COLLISION_PADDING", "8"
+)
+TOWN_NAME_OVERLAP_FONT_SIZE = _env_float("OCAP_RENDER_TOWN_NAME_OVERLAP_FONT_SIZE", "14")
+TOWN_NAME_POI_WORDS = {
+    "airfield",
+    "base",
+    "camp",
+    "checkpoint",
+    "depot",
+    "factory",
+    "farm",
+    "field",
+    "garage",
+    "market",
+    "mine",
+    "oil",
+    "outpost",
+    "station",
+}
+
+
 def run_command(command):
     """Run a shell command and fail loudly with the command that failed."""
     print(f"Running: {command}", flush=True)
@@ -18,6 +48,82 @@ def get_svg_items(root, category_id, item_type):
     for category in root.findall("./{http://www.w3.org/2000/svg}g"):
         if category.get("id") == category_id:
             return category.findall("./{http://www.w3.org/2000/svg}" + item_type)
+    return []
+
+
+def _svg_float(value, default=0.0):
+    try:
+        return float(str(value).replace("px", ""))
+    except (TypeError, ValueError):
+        return default
+
+
+def _text_value(text_el):
+    return "".join(text_el.itertext()).strip()
+
+
+def _town_name_priority(label):
+    words = [word for word in label.lower().replace("-", " ").split() if word]
+    poi_penalty = sum(1 for word in words if word in TOWN_NAME_POI_WORDS)
+    return (
+        -poi_penalty,
+        -max(0, len(words) - 1),
+        -len(label),
+        label.lower(),
+    )
+
+
+def _text_bbox(text_el, label, font_size, padding):
+    x = _svg_float(text_el.get("x"))
+    y = _svg_float(text_el.get("y"))
+    width = max(font_size * 3, len(label) * font_size * 0.58)
+    height = font_size * 1.2
+    return (
+        x - width / 2 - padding,
+        y - height - padding,
+        x + width / 2 + padding,
+        y + height * 0.25 + padding,
+    )
+
+
+def _boxes_overlap(a, b):
+    return not (a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1])
+
+
+def scale_overlapping_town_names(town_names_text, font_size, overlap_font_size):
+    labels = []
+    for text in town_names_text:
+        label = _text_value(text)
+        if label == "":
+            continue
+        labels.append(
+            {
+                "element": text,
+                "label": label,
+                "priority": _town_name_priority(label),
+                "bbox": _text_bbox(
+                    text, label, font_size, TOWN_NAME_COLLISION_PADDING
+                ),
+            }
+        )
+
+    kept = []
+    scaled = []
+    for item in sorted(labels, key=lambda value: value["priority"], reverse=True):
+        if any(_boxes_overlap(item["bbox"], existing["bbox"]) for existing in kept):
+            item["element"].set("font-size", f"{overlap_font_size:g}px")
+            scaled.append(item)
+        else:
+            item["element"].set("font-size", f"{font_size:g}px")
+            kept.append(item)
+
+    if scaled:
+        print(
+            "Reduced font size for",
+            len(scaled),
+            "overlapping town/location labels",
+            flush=True,
+        )
 
 
 def preprocess_svg(in_file, out_file):
@@ -188,13 +294,16 @@ def preprocess_svg(in_file, out_file):
             text.set("font-family", "Arial")
 
     print("Processing townNames...")
-    # get all text under <g id="townNames">
+    town_names_root = svg_root.find("./{http://www.w3.org/2000/svg}g[@id='townNames']")
     town_names_text = get_svg_items(svg_root, "townNames", "text")
 
-    # for all text under <g id="townNames">, set font-size to 24px and font-family to Arial
-    for text in town_names_text:
-        text.set("font-size", "24px")
-        text.set("font-family", "Arial")
+    # Keep every label. Reduce lower-priority overlapping labels instead of removing them.
+    if town_names_root is not None:
+        scale_overlapping_town_names(
+            town_names_text, TOWN_NAME_FONT_SIZE, TOWN_NAME_OVERLAP_FONT_SIZE
+        )
+        for text in get_svg_items(svg_root, "townNames", "text"):
+            text.set("font-family", "Arial")
 
     print("Processing airports...")
     # get all polylines under <g id="airports">
