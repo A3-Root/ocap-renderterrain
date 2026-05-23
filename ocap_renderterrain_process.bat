@@ -10,30 +10,29 @@ if not exist "%DOCKER_CONTEXT%\Dockerfile" (
     exit /b 1
 )
 
-set "ARMA_ROOT=%CD%"
-if exist "%ARMA_ROOT%\ocap_exporter\" goto :haveArmaRoot
+for %%I in ("%MOD_ROOT%\..") do set "MOD_PARENT=%%~fI"
 
-if exist "%MOD_ROOT%\..\ocap_exporter\" (
-    pushd "%MOD_ROOT%\.." >nul
-    set "ARMA_ROOT=%CD%"
-    popd >nul
-)
+set "ARMA_ROOT="
+if exist "%MOD_PARENT%\ocap_exporter\" set "ARMA_ROOT=%MOD_PARENT%"
+if not defined ARMA_ROOT if exist "%CD%\ocap_exporter\" set "ARMA_ROOT=%CD%"
+if not defined ARMA_ROOT if exist "%MOD_ROOT%\ocap_exporter\" set "ARMA_ROOT=%MOD_ROOT%"
 
-:haveArmaRoot
-if not exist "%ARMA_ROOT%\ocap_exporter\" (
-    echo Could not find exported source data at "%ARMA_ROOT%\ocap_exporter".
-    echo Run this from your Arma 3 root, or place @ocap_renderterrain inside the Arma 3 root.
+if not defined ARMA_ROOT (
+    echo Could not find exported source data.
+    echo Checked:
+    echo   "%MOD_PARENT%\ocap_exporter"
+    echo   "%CD%\ocap_exporter"
+    echo   "%MOD_ROOT%\ocap_exporter"
+    echo Run this from your Arma 3 root, or place @ocap_renderterrain inside the Arma 3 root after exporting terrain source data.
     exit /b 1
 )
 
 set "INPUT_DIR=%ARMA_ROOT%\ocap_exporter"
 set "OUTPUT_DIR=%ARMA_ROOT%\ocap_renderterrain_output"
-set "TEMP_DIR=%ARMA_ROOT%\ocap_renderterrain_temp"
 set "WORLDS=%~1"
 if "%OCAP_RENDER_DOCKER_MEMORY%"=="" set "OCAP_RENDER_DOCKER_MEMORY=48g"
 
 if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
-if not exist "%TEMP_DIR%" mkdir "%TEMP_DIR%"
 
 echo Building Docker image from "%DOCKER_CONTEXT%"...
 docker build -t ocap-renderterrain:latest "%DOCKER_CONTEXT%"
@@ -42,11 +41,11 @@ if errorlevel 1 exit /b %errorlevel%
 docker rm -f ocap-renderterrain-manual >nul 2>nul
 
 echo Processing source data from "%INPUT_DIR%"...
+echo Writing rendered output to "%OUTPUT_DIR%"...
 if "%WORLDS%"=="" (
     docker run --rm --name ocap-renderterrain-manual ^
       --mount type=bind,src="%INPUT_DIR%",target=/app/input ^
       --mount type=bind,src="%OUTPUT_DIR%",target=/app/output ^
-      --mount type=bind,src="%TEMP_DIR%",target=/app/temp ^
       --env OCAP_RENDER_MAX_SIZE=32768 ^
       --memory=%OCAP_RENDER_DOCKER_MEMORY% ^
       ocap-renderterrain:latest
@@ -54,7 +53,6 @@ if "%WORLDS%"=="" (
     docker run --rm --name ocap-renderterrain-manual ^
       --mount type=bind,src="%INPUT_DIR%",target=/app/input ^
       --mount type=bind,src="%OUTPUT_DIR%",target=/app/output ^
-      --mount type=bind,src="%TEMP_DIR%",target=/app/temp ^
       --env "OCAP_RENDER_WORLDS=%WORLDS%" ^
       --env OCAP_RENDER_MAX_SIZE=32768 ^
       --memory=%OCAP_RENDER_DOCKER_MEMORY% ^
