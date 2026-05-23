@@ -4,9 +4,9 @@ setlocal EnableExtensions
 set "MOD_ROOT=%~dp0"
 if "%MOD_ROOT:~-1%"=="\" set "MOD_ROOT=%MOD_ROOT:~0,-1%"
 
-set "DOCKER_CONTEXT=%MOD_ROOT%\ocap_renderterrain"
-if not exist "%DOCKER_CONTEXT%\Dockerfile" (
-    echo Docker context not found: "%DOCKER_CONTEXT%"
+set "RENDER_CONTEXT=%MOD_ROOT%\ocap_renderterrain"
+if not exist "%RENDER_CONTEXT%\Dockerfile" (
+    echo Docker context not found: "%RENDER_CONTEXT%"
     exit /b 1
 )
 
@@ -34,8 +34,8 @@ if "%OCAP_RENDER_DOCKER_MEMORY%"=="" set "OCAP_RENDER_DOCKER_MEMORY=48g"
 
 if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
 
-echo Building Docker image from "%DOCKER_CONTEXT%"...
-docker build -t ocap-renderterrain:latest "%DOCKER_CONTEXT%"
+echo Building Docker image from "%RENDER_CONTEXT%"...
+docker build -t ocap-renderterrain:latest "%RENDER_CONTEXT%"
 if errorlevel 1 exit /b %errorlevel%
 
 docker rm -f ocap-renderterrain-manual >nul 2>nul
