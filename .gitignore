@@ -5,3 +5,5 @@ releases/
 .biprivatekey
 reference_files/**/*
 **__pycache__**/**/*
+ocap-renderterrain/__pycache__/**/*
+modules/ocap-renderterrain/__pycache__/**/*
